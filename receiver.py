@@ -1,19 +1,9 @@
 import socket
 from PIL import Image
 
-HOST = '127.0.0.1'
-PORT = 6969
 
 def recvall(receiver, buffer_size=65536):
-    '''
-    Input: 
-        receiver: socket
-        buffer_size: int
-    Output: 
-        data_buffer: bytes
-    '''
     data_buffer = b''
-    data_chunk = b''
     data_chunk=receiver.recv(buffer_size)
     while len(data_chunk) >= buffer_size:
         data_buffer+=data_chunk
@@ -21,14 +11,25 @@ def recvall(receiver, buffer_size=65536):
     data_buffer+=data_chunk
     return data_buffer
     
-def join_image(images):
-    pass 
-
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as receiver:
-    receiver.connect((HOST, PORT))
-    shape = receiver.recv(4096)
-    print(shape)
+def get_shape(sock):
+    shape = sock.recv(32)
     shape = tuple(map(int,str(shape)[2:-1].split(',')))
-    pixel_data =  recvall(receiver)
+    return shape 
+
+def display(pixel_data,shape):
     image = Image.frombytes("RGB", shape, pixel_data, 'raw')
     image.show()
+
+def join_image(image_parts):
+    return ''.join(image_parts)
+
+def receive(host='127.0.0.1', port=6969):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as receiver:
+        receiver.connect((host, port))
+        shape = get_shape(receiver)
+        pixel_data =  recvall(receiver)
+    return pixel_data,shape
+
+if __name__ == "__main__":
+    display(*receive())
+    display(*receive(port=6970))
