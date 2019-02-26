@@ -6,8 +6,11 @@ PORT = 6969
 
 def recvall(receiver, buffer_size=65536):
     '''
-    receiver: socket
-    buffer_size: int
+    Input: 
+        receiver: socket
+        buffer_size: int
+    Output: 
+        data_buffer: bytes
     '''
     data_buffer = b''
     data_chunk = b''
@@ -23,7 +26,9 @@ def join_image(images):
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as receiver:
     receiver.connect((HOST, PORT))
-    print(receiver.recv(4096))
+    shape = receiver.recv(4096)
+    print(shape)
+    shape = tuple(map(int,str(shape)[2:-1].split(',')))
     pixel_data =  recvall(receiver)
-    image = Image.frombytes("RGB", (2880 ,1800), pixel_data, 'raw')
+    image = Image.frombytes("RGB", shape, pixel_data, 'raw')
     image.show()
