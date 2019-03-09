@@ -1,43 +1,48 @@
-from PIL import Image
+from PIL import Image, ImageTk
 import mss
 import socket
+import time
+from data import SocketData
+import pickle
+import tkinter as tk
+import time
 
 def screenshot():
     with mss.mss() as sct:
-        im = sct.grab(sct.monitors[1])
-    return  im
+        img = sct.grab(sct.monitors[1])
+    return rgba_to_rgb(img)
 
 def rgba_to_rgb(im):
     return Image.frombytes('RGB', im.size, im.bgra, 'raw', 'BGRX')
 
-def image_to_bytes(image):
-    rgb = rgba_to_rgb(image)
-    return rgb.tobytes()
-
-def shape_to_string(im):
-    return f'{im.width},{im.height}'
-
-def split_image(image, parts=2):
-    k, m = divmod(len(image),parts)
-    return (image[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(parts))
-
-
-def transmit(image,host='127.0.0.1',port=6969):
+def transmit(host='0.0.0.0', port=6969):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sender:
+
         sender.bind((host, port))
         sender.listen()
+        print('Waiting for connection...')
         conn, addr = sender.accept()
-        shape = shape_to_string(image)
-        pixel_data = image_to_bytes(image)
-        with conn:
-            conn.send(bytes(shape,'utf-8'))
-            print('Connected by', addr)
-            print('port1 is being used ')
-            conn.sendall(pixel_data)
-            print('port1 is  done being used ')
 
+        with conn:
+            print('Connected by', addr)
+
+            image = screenshot().resize((1280, 720), Image.ANTIALIAS)
+            data = SocketData(image=image)
+            data_string = pickle.dumps(data)
+            print(len(data_string))
+            conn.send(str(len(data_string)).encode())
+
+            while True:
+                start_time = time.time()
+
+                conn.sendall(data_string)
+                
+                data_string = b''
+                image = screenshot().resize((1280, 720), Image.ANTIALIAS)
+                data = SocketData(image=image)
+                data_string = pickle.dumps(data)
+                print("FPS: ", 1/(time.time() - start_time))
+                
 if __name__ == "__main__":
-    image = screenshot()
-    transmit(image)
-    transmit(image, port=6970)
+    transmit()
     

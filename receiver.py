@@ -1,35 +1,54 @@
 import socket
-from PIL import Image
+import tkinter as tk
+from tkinter import Canvas
+from PIL import ImageTk, Image
+import time
+from data import SocketData
+import pickle
+from threading import Thread
+
+class Receiver:
+
+    def __init__(self, host='127.0.0.1', port=6969):
+        self.data_string = ""
+        self.length = 0
+        self.receiver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.receiver.connect((host, port))
+
+    def receive(self):
+  
+        data = self.receiver.recv(10)
+        print(data.decode())
+        self.length = int(data.decode())
+
+        while True:
+            start_time = time.time()
+            self.data_string = b''
+            self.data_string = self.receiver.recv(self.length)
+
+            self.image = pickle.loads(self.data_string).image
+            #print("FPS: ", 1/(time.time() - start_time))
 
 
-def recvall(receiver, buffer_size=65536):
-    data_buffer = b''
-    data_chunk=receiver.recv(buffer_size)
-    while len(data_chunk) >= buffer_size:
-        data_buffer+=data_chunk
-        data_chunk=receiver.recv(buffer_size)
-    data_buffer+=data_chunk
-    return data_buffer
-    
-def get_shape(sock):
-    shape = sock.recv(32)
-    shape = tuple(map(int,str(shape)[2:-1].split(',')))
-    return shape 
+def gui(receiver):
+    window = tk.Tk()
+    cv = tk.Canvas()
+    cv.pack(side='top', fill='both', expand='yes')
 
-def display(pixel_data,shape):
-    image = Image.frombytes("RGB", shape, pixel_data, 'raw')
-    image.show()
-
-def join_image(image_parts):
-    return ''.join(image_parts)
-
-def receive(host='127.0.0.1', port=6969):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as receiver:
-        receiver.connect((host, port))
-        shape = get_shape(receiver)
-        pixel_data =  recvall(receiver)
-    return pixel_data,shape
+    while True:
+        try:
+            photo = ImageTk.PhotoImage(image=receiver.image)
+            cv.create_image(10, 10, image=photo, anchor='nw')
+        except:
+            pass
+        window.update()
 
 if __name__ == "__main__":
-    display(*receive())
-    display(*receive(port=6970))
+    r = Receiver()
+    #r.receive()
+
+    th = Thread(target=r.receive, args=[])
+    th.start()
+    gui(r)
+    
+
