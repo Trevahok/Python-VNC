@@ -29,19 +29,22 @@ class Receiver:
             self.image = pickle.loads(self.data_string).image
             #print("FPS: ", 1/(time.time() - start_time))
 
-
 def gui(receiver):
     window = tk.Tk()
+    window.geometry("1280x720")
+    window.title("VNC Madafaka")
     cv = tk.Canvas()
     cv.pack(side='top', fill='both', expand='yes')
 
     while True:
         try:
-            photo = ImageTk.PhotoImage(image=receiver.image)
-            cv.create_image(10, 10, image=photo, anchor='nw')
+            image = receiver.image.resize((window.winfo_width(), window.winfo_height()), Image.ANTIALIAS)
+            photo = ImageTk.PhotoImage(image=image)
+            cv.create_image(0, 0, image=photo, anchor='nw')
         except:
             pass
         window.update()
+
 
 if __name__ == "__main__":
     r = Receiver()
@@ -49,6 +52,5 @@ if __name__ == "__main__":
 
     th = Thread(target=r.receive, args=[])
     th.start()
-    gui(r)
-    
+    gui(r)    
 
